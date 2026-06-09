@@ -3,21 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TON Paint</title>
+<title>TON Paint NFT Gate</title>
 <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#111;color:#fff;font-family:Arial,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
-header{width:100%;background:#1c1c1c;padding:15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+header{width:100%;background:#1c1c1c;padding:15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
 .logo{font-size:28px;font-weight:bold}
-#walletAddress{font-size:12px;max-width:300px;word-break:break-all;text-align:right}
-canvas{background:#fff;border-radius:15px;margin-top:20px;max-width:95%;box-shadow:0 0 20px rgba(0,0,0,.4);touch-action:none}
-.toolbar{margin-top:15px;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:10px}
+#walletAddress{font-size:12px;word-break:break-all}
+canvas{background:#fff;border-radius:15px;margin-top:20px;max-width:95%;display:none}
+.toolbar{margin-top:15px;display:none;gap:10px;flex-wrap:wrap}
 button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer}
-.status{margin-top:10px;padding-bottom:20px}
+.status{margin-top:15px;text-align:center;padding:10px}
+a{color:#00cfff}
 </style>
 </head>
 <body>
+
 <header>
 <div class="logo">TON Paint</div>
 <div>
@@ -35,78 +37,183 @@ button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer}
 <button id="save">Сохранить PNG</button>
 </div>
 
-<div class="status" id="status">Готов к рисованию</div>
+<div class="status" id="status">
+Подключите TON-кошелек
+</div>
 
 <script>
-const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
- manifestUrl:'https://roman22022000.github.io/Ton_site/tonconnect-manifest.json',
- buttonRootId:'ton-connect'
+
+const REQUIRED_COLLECTION =
+"EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+
+const COLLECTION_LINK =
+"https://getgems.io";
+
+const canvas=document.getElementById("paint");
+const toolbar=document.querySelector(".toolbar");
+const status=document.getElementById("status");
+
+const tonConnectUI=new TON_CONNECT_UI.TonConnectUI({
+manifestUrl:'https://roman22022000.github.io/Ton_site/tonconnect-manifest.json',
+buttonRootId:'ton-connect'
 });
 
-tonConnectUI.onStatusChange(wallet=>{
- const el=document.getElementById('walletAddress');
- if(wallet){
-   el.innerHTML='Подключен:<br>'+wallet.account.address;
- }else{
-   el.textContent='Кошелек не подключен';
- }
-});
+async function checkNFT(address){
 
-const canvas=document.getElementById('paint');
+try{
+
+status.innerHTML="Проверка NFT...";
+
+const response=await fetch(
+`https://tonapi.io/v2/accounts/${address}/nfts`
+);
+
+const data=await response.json();
+
+const hasNFT=(data.nft_items||[]).some(
+item=>
+item.collection &&
+item.collection.address===REQUIRED_COLLECTION
+);
+
+if(hasNFT){
+
+canvas.style.display="block";
+toolbar.style.display="flex";
+
+status.innerHTML=
+"NFT найден. Рисование разрешено.";
+
+}else{
+
+canvas.style.display="none";
+toolbar.style.display="none";
+
+status.innerHTML=`
+Для рисования нужен NFT<br><br>
+<a href="${COLLECTION_LINK}" target="_blank">
+Перейти к коллекции
+</a>
+`;
+
+}
+
+}catch(err){
+
+console.error(err);
+
+status.innerHTML=
+"Ошибка проверки NFT";
+
+}
+
+}
+
+tonConnectUI.onStatusChange(
+async wallet=>{
+
+const el=
+document.getElementById(
+'walletAddress'
+);
+
+if(wallet){
+
+el.innerHTML=
+'Подключен:<br>'+
+wallet.account.address;
+
+await checkNFT(
+wallet.account.address
+);
+
+}else{
+
+el.textContent=
+'Кошелек не подключен';
+
+canvas.style.display="none";
+toolbar.style.display="none";
+
+status.innerHTML=
+'Подключите TON-кошелек';
+
+}
+
+}
+);
+
 const ctx=canvas.getContext('2d');
 let drawing=false;
 
 function pos(e){
- const r=canvas.getBoundingClientRect();
- if(e.touches){
-  return {x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};
- }
- return {x:e.clientX-r.left,y:e.clientY-r.top};
+const r=canvas.getBoundingClientRect();
+if(e.touches){
+return {
+x:e.touches[0].clientX-r.left,
+y:e.touches[0].clientY-r.top
+};
+}
+return {
+x:e.clientX-r.left,
+y:e.clientY-r.top
+};
 }
 
 function start(e){
- drawing=true;
- const p=pos(e);
- ctx.beginPath();
- ctx.moveTo(p.x,p.y);
+drawing=true;
+const p=pos(e);
+ctx.beginPath();
+ctx.moveTo(p.x,p.y);
 }
 
 function stop(){
- drawing=false;
- ctx.beginPath();
+drawing=false;
+ctx.beginPath();
 }
 
 function draw(e){
- if(!drawing) return;
- e.preventDefault();
- const p=pos(e);
- ctx.lineWidth=document.getElementById('size').value;
- ctx.strokeStyle=document.getElementById('color').value;
- ctx.lineCap='round';
- ctx.lineTo(p.x,p.y);
- ctx.stroke();
- ctx.beginPath();
- ctx.moveTo(p.x,p.y);
+if(!drawing)return;
+e.preventDefault();
+
+const p=pos(e);
+
+ctx.lineWidth=
+document.getElementById('size').value;
+
+ctx.strokeStyle=
+document.getElementById('color').value;
+
+ctx.lineCap='round';
+
+ctx.lineTo(p.x,p.y);
+ctx.stroke();
+
+ctx.beginPath();
+ctx.moveTo(p.x,p.y);
 }
 
 canvas.addEventListener('mousedown',start);
 canvas.addEventListener('mouseup',stop);
 canvas.addEventListener('mouseleave',stop);
 canvas.addEventListener('mousemove',draw);
+
 canvas.addEventListener('touchstart',start);
 canvas.addEventListener('touchend',stop);
 canvas.addEventListener('touchmove',draw);
 
 document.getElementById('clear').onclick=()=>{
- ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.clearRect(0,0,canvas.width,canvas.height);
 };
 
 document.getElementById('save').onclick=()=>{
- const a=document.createElement('a');
- a.download='drawing.png';
- a.href=canvas.toDataURL('image/png');
- a.click();
+const a=document.createElement('a');
+a.download='drawing.png';
+a.href=canvas.toDataURL('image/png');
+a.click();
 };
+
 </script>
+
 </body>
 </html>
