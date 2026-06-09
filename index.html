@@ -44,7 +44,7 @@ a{color:#00cfff}
 <script>
 
 const REQUIRED_COLLECTION =
-"EQD9mm3hx-QvHyNG18gDaaJtSTTQTVVYVjJ6zhonXocj2eyI";
+"0:fd9a6de1c7e42f1f2346d7c80369a26d4934d04d555856327ace1a275e8723d9";
 
 const COLLECTION_LINK =
 "https://getgems.io/collection/EQD9mm3hx-QvHyNG18gDaaJtSTTQTVVYVjJ6zhonXocj2eyI";
@@ -98,10 +98,9 @@ console.log("COLLECTION NAME:", item.collection?.name);
 console.log("================================");
 
     if(
-        collectionAddress.includes(
-            "EQD9mm3hx-QvHyNG18gDaaJtSTTQTVVYVjJ6zhonXocj2eyI"
-        )
-    ){
+    collectionAddress ===
+    "0:fd9a6de1c7e42f1f2346d7c80369a26d4934d04d555856327ace1a275e8723d9"
+){
         hasNFT = true;
         break;
     }
