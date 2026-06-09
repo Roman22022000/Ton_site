@@ -62,39 +62,64 @@ async function checkNFT(address){
 
 try{
 
-status.innerHTML="Проверка NFT...";
+status.innerHTML = "Проверка NFT...";
 
-const response=await fetch(
-`https://tonapi.io/v2/accounts/${address}/nfts`
+const response = await fetch(
+`https://tonapi.io/v2/accounts/${address}/nfts?limit=1000`
 );
 
-const data=await response.json();
+const data = await response.json();
 
-const hasNFT=(data.nft_items||[]).some(
-item=>
-item.collection &&
-item.collection.address===REQUIRED_COLLECTION
-);
+console.log("NFT DATA:", data);
+
+let hasNFT = false;
+
+for(const item of (data.nft_items || [])){
+
+    console.log("NFT:", item);
+
+    const collectionAddress =
+        item.collection?.address || "";
+
+    const nftAddress =
+        item.address || "";
+
+    console.log(
+        "Collection:",
+        collectionAddress
+    );
+
+    if(
+        collectionAddress.includes(
+            "EQD9mm3hx-QvHyNG18gDaaJtSTTQTVVYVjJ6zhonXocj2eyI"
+        )
+    ){
+        hasNFT = true;
+        break;
+    }
+
+}
 
 if(hasNFT){
 
-canvas.style.display="block";
-toolbar.style.display="flex";
+    canvas.style.display = "block";
+    toolbar.style.display = "flex";
 
-status.innerHTML=
-"NFT найден. Рисование разрешено.";
+    status.innerHTML =
+        "NFT найден. Рисование разрешено.";
 
 }else{
 
-canvas.style.display="none";
-toolbar.style.display="none";
+    canvas.style.display = "none";
+    toolbar.style.display = "none";
 
-status.innerHTML=`
-Для рисования нужен NFT<br><br>
-<a href="${COLLECTION_LINK}" target="_blank">
-Перейти к коллекции
-</a>
-`;
+    status.innerHTML = `
+    Для рисования нужен NFT
+    <br><br>
+    <a href="${COLLECTION_LINK}" target="_blank">
+        Купить NFT
+    </a>
+    `;
 
 }
 
@@ -102,7 +127,7 @@ status.innerHTML=`
 
 console.error(err);
 
-status.innerHTML=
+status.innerHTML =
 "Ошибка проверки NFT";
 
 }
