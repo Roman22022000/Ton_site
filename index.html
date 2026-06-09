@@ -89,10 +89,13 @@ for(const item of (data.nft_items || [])){
     item.metadata?.name
 );
 
-console.log(
-    "COLLECTION:",
-    item.collection
-);
+console.log("================================");
+console.log("NFT NAME:", item.metadata?.name);
+console.log("NFT ADDRESS:", item.address);
+console.log("COLLECTION OBJECT:", item.collection);
+console.log("COLLECTION ADDRESS:", item.collection?.address);
+console.log("COLLECTION NAME:", item.collection?.name);
+console.log("================================");
 
     if(
         collectionAddress.includes(
