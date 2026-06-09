@@ -2,181 +2,111 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TON Paint</title>
-
 <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-
 <style>
-body{
-margin:0;
-background:#111;
-color:white;
-font-family:Arial;
-display:flex;
-flex-direction:column;
-align-items:center;
-}
-
-header{
-width:100%;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-background:#1b1b1b;
-}
-
-canvas{
-background:white;
-border-radius:12px;
-margin-top:20px;
-touch-action:none;
-}
-
-.toolbar{
-margin-top:15px;
-display:flex;
-gap:10px;
-}
-
-button{
-padding:10px 20px;
-border:none;
-border-radius:10px;
-cursor:pointer;
-}
-
-input[type=color]{
-height:45px;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#111;color:#fff;font-family:Arial,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+header{width:100%;background:#1c1c1c;padding:15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.logo{font-size:28px;font-weight:bold}
+#walletAddress{font-size:12px;max-width:300px;word-break:break-all;text-align:right}
+canvas{background:#fff;border-radius:15px;margin-top:20px;max-width:95%;box-shadow:0 0 20px rgba(0,0,0,.4);touch-action:none}
+.toolbar{margin-top:15px;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:10px}
+button{padding:10px 18px;border:none;border-radius:10px;cursor:pointer}
+.status{margin-top:10px;padding-bottom:20px}
 </style>
 </head>
 <body>
-
 <header>
-<h2>TON Paint</h2>
+<div class="logo">TON Paint</div>
+<div>
 <div id="ton-connect"></div>
+<div id="walletAddress">Кошелек не подключен</div>
+</div>
 </header>
 
-<canvas id="paint" width="1000" height="600"></canvas>
+<canvas id="paint" width="1200" height="700"></canvas>
 
 <div class="toolbar">
-<input type="color" id="color">
+<input type="color" id="color" value="#000000">
 <input type="range" id="size" min="1" max="50" value="5">
-
-<button id="clear">
-Очистить
-</button>
-
-<button id="save">
-Сохранить PNG
-</button>
+<button id="clear">Очистить</button>
+<button id="save">Сохранить PNG</button>
 </div>
 
-<script>
+<div class="status" id="status">Готов к рисованию</div>
 
+<script>
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-manifestUrl:
-'https://romerosai.space/tonconnect-manifest.json',
-buttonRootId:'ton-connect'
+ manifestUrl:'https://roman22022000.github.io/Ton_site/tonconnect-manifest.json',
+ buttonRootId:'ton-connect'
 });
 
 tonConnectUI.onStatusChange(wallet=>{
-if(wallet){
-console.log(
-wallet.account.address
-);
-}
+ const el=document.getElementById('walletAddress');
+ if(wallet){
+   el.innerHTML='Подключен:<br>'+wallet.account.address;
+ }else{
+   el.textContent='Кошелек не подключен';
+ }
 });
 
-const canvas =
-document.getElementById('paint');
-
-const ctx =
-canvas.getContext('2d');
-
+const canvas=document.getElementById('paint');
+const ctx=canvas.getContext('2d');
 let drawing=false;
 
-canvas.addEventListener(
-'mousedown',
-()=>{
-drawing=true;
+function pos(e){
+ const r=canvas.getBoundingClientRect();
+ if(e.touches){
+  return {x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};
+ }
+ return {x:e.clientX-r.left,y:e.clientY-r.top};
 }
-);
 
-canvas.addEventListener(
-'mouseup',
-()=>{
-drawing=false;
-ctx.beginPath();
+function start(e){
+ drawing=true;
+ const p=pos(e);
+ ctx.beginPath();
+ ctx.moveTo(p.x,p.y);
 }
-);
 
-canvas.addEventListener(
-'mousemove',
-draw
-);
+function stop(){
+ drawing=false;
+ ctx.beginPath();
+}
 
 function draw(e){
-
-if(!drawing)return;
-
-ctx.lineWidth=
-document.getElementById('size').value;
-
-ctx.strokeStyle=
-document.getElementById('color').value;
-
-ctx.lineCap='round';
-
-ctx.lineTo(
-e.offsetX,
-e.offsetY
-);
-
-ctx.stroke();
-
-ctx.beginPath();
-
-ctx.moveTo(
-e.offsetX,
-e.offsetY
-);
-
+ if(!drawing) return;
+ e.preventDefault();
+ const p=pos(e);
+ ctx.lineWidth=document.getElementById('size').value;
+ ctx.strokeStyle=document.getElementById('color').value;
+ ctx.lineCap='round';
+ ctx.lineTo(p.x,p.y);
+ ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(p.x,p.y);
 }
 
-document
-.getElementById('clear')
-.onclick=()=>{
+canvas.addEventListener('mousedown',start);
+canvas.addEventListener('mouseup',stop);
+canvas.addEventListener('mouseleave',stop);
+canvas.addEventListener('mousemove',draw);
+canvas.addEventListener('touchstart',start);
+canvas.addEventListener('touchend',stop);
+canvas.addEventListener('touchmove',draw);
 
-ctx.clearRect(
-0,
-0,
-canvas.width,
-canvas.height
-);
-
+document.getElementById('clear').onclick=()=>{
+ ctx.clearRect(0,0,canvas.width,canvas.height);
 };
 
-document
-.getElementById('save')
-.onclick=()=>{
-
-const link=
-document.createElement('a');
-
-link.download=
-'drawing.png';
-
-link.href=
-canvas.toDataURL();
-
-link.click();
-
+document.getElementById('save').onclick=()=>{
+ const a=document.createElement('a');
+ a.download='drawing.png';
+ a.href=canvas.toDataURL('image/png');
+ a.click();
 };
-
 </script>
-
 </body>
 </html>
